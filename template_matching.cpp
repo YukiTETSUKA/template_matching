@@ -1,69 +1,86 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
-// #include <filesystem> // std::tr2::sys::path etc.
-#include <regex>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 
 using namespace std;
 
 int main(int argc, char **argv) {
-  IplImage *tmp_img;
-
-  if (argc != 2) {
+  if (argc != 4) { // 引数チェック
+    cout << "Usage : ./a.out <PictDir> <template_img> <DistDir>" << endl;
     return -1;
   }
 
-  DIR* dp = opendir(argv[1]);
-  if (dp != NULL) {
-    struct dirent* dent;
+  struct stat st;
+  int st_code;
 
-    do{
-      dent = readdir(dp);
-      if (dent!=NULL)
-        cout << dent->d_name << endl;
-    } while (dent!=NULL);
-
-    closedir(dp);
-  } else {
-    cout << "error" << endl;
+  st_code = stat(argv[1], &st);
+  if (st_code != 0) { // PictDirの存在チェック
+    cout << argv[1] << " is not exist." << endl;
+    return -1;
   }
-  // namespace sys = std::tr2::sys;
-  //
-  // std::for_each(sys::directory_iterator(p), sys::directory_iterator(), [&tmp_img](const sys::path& p) {
-  //     std::regex re("201604");
-  //
-  //     if (sys::is_regular_file(p) && std::regex_match(p.filename(), re)) {
-  //     //OutputDebugString();
-  //     cout << "file: " << p.filename() << endl;
-  //
-  //     double min_val, max_val;
-  //     CvPoint min_loc, max_loc;
-  //     CvSize dst_size;
-  //     IplImage *src_img, *dst_img;
-  //
-  //     if ((src_img = cvLoadImage(p.filename().c_str(), CV_LOAD_IMAGE_COLOR)) == 0)
-  //     exit(-1);
-  //
-  //     // (1)探索画像全体に対して，テンプレートのマッチング値（指定した手法に依存）を計算
-  //     dst_size = cvSize(src_img->width - tmp_img->width + 1, src_img->height - tmp_img->height + 1);
-  //     dst_img = cvCreateImage(dst_size, IPL_DEPTH_32F, 1);
-  //     cv::matchTemplate(cv::cvarrToMat(src_img), cv::cvarrToMat(tmp_img), cv::cvarrToMat(dst_img), CV_TM_CCOEFF_NORMED);
-  //     cvMinMaxLoc(dst_img, &min_val, &max_val, &min_loc, &max_loc, NULL);
-  //
-  //     // (2)テンプレートに対応する位置に矩形を描画
-  //     cvRectangle(src_img, max_loc,
-  //         cvPoint(max_loc.x + tmp_img->width, max_loc.y + tmp_img->height), CV_RGB(255, 0, 0), 3);
-  //     cvNamedWindow("Image", 1);
-  //     cvShowImage("Image", src_img);
-  //     cvWaitKey(0);
-  //
-  //     cvDestroyWindow("Image");
-  //     cvReleaseImage(&src_img);
-  //     cvReleaseImage(&tmp_img);
-  //     cvReleaseImage(&dst_img);
-  //     }
-  // });
+  if ((st.st_mode & S_IFDIR) != S_IFDIR) { // PictDir is directory?
+    cout << st.st_mode << endl;
+    cout << argv[1] << " is not directory." << endl;
+    return -1;
+  }
+
+  // テンプレート画像の取得
+  IplImage *tmp_img;
+  if ((tmp_img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR)) == 0) {
+    cout << argv[2] << " can't open." << endl;
+    return -1;
+  }
+
+  st_code = stat(argv[3], &st);
+  if (st_code != 0) { // DistDirの存在チェック
+    cout << argv[3] << " is not exist." << endl;
+    return -1;
+  }
+  if ((st.st_mode & S_IFDIR) != S_IFDIR) { // DistDir is directory?
+    cout << argv[3] << " is not directory." << endl;
+    return -1;
+  }
+
+  DIR* dir_ptr = opendir(argv[1]);
+  if (dir_ptr == NULL) {
+    cout << argv[1] << " can't open." << endl;
+    return -1;
+  }
+
+  struct dirent* dir_entry;
+  double min_val, max_val;
+  CvPoint min_loc, max_loc;
+  CvSize dst_size;
+  IplImage *src_img, *dst_img;
+
+  while ((dir_entry = readdir(dir_ptr)) != NULL) {
+    string file_path = string(argv[1]) + string(dir_entry->d_name);
+
+    if ((src_img = cvLoadImage(file_path.c_str(), CV_LOAD_IMAGE_COLOR)) == 0) {
+      cout << file_path << " can't open." << endl;
+      continue;
+    }
+
+    dst_size = cvSize(src_img->width - tmp_img->width + 1, src_img->height - tmp_img->height + 1);
+    dst_img = cvCreateImage(dst_size, IPL_DEPTH_32F, 1);
+    cv::matchTemplate(cv::cvarrToMat(src_img), cv::cvarrToMat(tmp_img), cv::cvarrToMat(dst_img), CV_TM_CCOEFF_NORMED);
+    cvMinMaxLoc(dst_img, &min_val, &max_val, &min_loc, &max_loc, NULL);
+
+    if (max_val >= 0.5) {
+      cvRectangle(src_img, max_loc, cvPoint(max_loc.x + tmp_img->width, max_loc.y + tmp_img->height), CV_RGB(255, 0, 0), 3);
+      cvSaveImage((string(argv[2]) + "tm_" + string(dir_entry->d_name)).c_str(), src_img);
+
+      cout << "Create " << string(argv[2]) + "tm_" + string(dir_entry->d_name) << endl;
+    }
+
+    cvReleaseImage(&src_img);
+    cvReleaseImage(&dst_img);
+  }
+
+  cvReleaseImage(&tmp_img);
+  closedir(dir_ptr);
 
   return 0;
 }

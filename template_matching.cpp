@@ -68,11 +68,13 @@ int main(int argc, char **argv) {
     cv::matchTemplate(cv::cvarrToMat(src_img), cv::cvarrToMat(tmp_img), cv::cvarrToMat(dst_img), CV_TM_CCOEFF_NORMED);
     cvMinMaxLoc(dst_img, &min_val, &max_val, &min_loc, &max_loc, NULL);
 
+    cout << file_path << " : " << max_val << endl;
+
     if (max_val >= 0.5) {
       cvRectangle(src_img, max_loc, cvPoint(max_loc.x + tmp_img->width, max_loc.y + tmp_img->height), CV_RGB(255, 0, 0), 3);
-      cvSaveImage((string(argv[2]) + "tm_" + string(dir_entry->d_name)).c_str(), src_img);
+      cvSaveImage((string(argv[3]) + "tm_" + string(dir_entry->d_name)).c_str(), src_img);
 
-      cout << "Create " << string(argv[2]) + "tm_" + string(dir_entry->d_name) << endl;
+      cout << "Create " << string(argv[3]) + "tm_" + string(dir_entry->d_name) << endl;
     }
 
     cvReleaseImage(&src_img);

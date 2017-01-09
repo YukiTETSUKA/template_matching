@@ -7,8 +7,9 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-  if (argc != 4) { // 引数チェック
-    cout << "Usage : ./a.out <PictDir> <template_img> <DistDir>" << endl;
+  /*** begin of arguments check ***/
+  if (argc != 4) {
+    cout << "Usage : ./a.out <pictures dir> <template picture> <distribution dir>" << endl;
     return -1;
   }
 
@@ -16,17 +17,17 @@ int main(int argc, char **argv) {
   int st_code;
 
   st_code = stat(argv[1], &st);
-  if (st_code != 0) { // PictDirの存在チェック
+  if (st_code != 0) { // <pictures dir> is exist?
     cout << argv[1] << " is not exist." << endl;
     return -1;
   }
-  if ((st.st_mode & S_IFDIR) != S_IFDIR) { // PictDir is directory?
+  if ((st.st_mode & S_IFDIR) != S_IFDIR) { // <pictures dir> is directory?
     cout << st.st_mode << endl;
     cout << argv[1] << " is not directory." << endl;
     return -1;
   }
 
-  // テンプレート画像の取得
+  // Obtain template picture
   IplImage *tmp_img;
   if ((tmp_img = cvLoadImage(argv[2], CV_LOAD_IMAGE_COLOR)) == 0) {
     cout << argv[2] << " can't open." << endl;
@@ -34,14 +35,15 @@ int main(int argc, char **argv) {
   }
 
   st_code = stat(argv[3], &st);
-  if (st_code != 0) { // DistDirの存在チェック
+  if (st_code != 0) { // <distribution dir> is exist?
     cout << argv[3] << " is not exist." << endl;
     return -1;
   }
-  if ((st.st_mode & S_IFDIR) != S_IFDIR) { // DistDir is directory?
+  if ((st.st_mode & S_IFDIR) != S_IFDIR) { // <distribution dir> is directory?
     cout << argv[3] << " is not directory." << endl;
     return -1;
   }
+  /*** end of arguments check ***/
 
   DIR* dir_ptr = opendir(argv[1]);
   if (dir_ptr == NULL) {

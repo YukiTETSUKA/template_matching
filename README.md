@@ -8,7 +8,7 @@ Usage
 
 Using a template_img
 ```
-$ ./a.out <picture dir> <template picture> <distribution dir>
+$ ./a.out <pictures dir> <template picture> <distribution dir>
 
 Example:
 $ ./a.out ~/Desktop/work ~/Desktop/template/hoge.png ~/Desktop/template_matching/
